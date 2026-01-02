@@ -4,7 +4,7 @@ terraform {
     organization = "crm-project" 
 
     workspaces { 
-      name = "microservices-infrastructure" 
+      name = "smart-parking-infrastructure" 
     } 
   } 
 }
@@ -14,8 +14,8 @@ provider "aws" {
 }
 
 
-#modules
-module "vpc_crm" {
+#---MODULES---
+module "vpc_parking" {
   source          = "./modules/vpc"
   vpc_cidr        = var.vpc_cidr
   azs             = var.azs
@@ -25,18 +25,21 @@ module "vpc_crm" {
 
 module "ecs_sg" {
   source          = "./modules/security_groups"
-  vpc_id          = module.vpc_crm.vpc_id
-  vpc_cidr        = module.vpc_crm.vpc_cidr
+  vpc_id          = module.vpc_parking.vpc_id
+  vpc_cidr        = module.vpc_parking.vpc_cidr
   security_groups = var.security_groups
 }
 
 module "alb" {
   source          = "./modules/alb"
-  name            = "alb"
+  name            = "smart-parking-alb"
   internal        = false
   security_groups = [module.ecs_sg.sg_person_service_id]
   subnets         = module.vpc_crm.public_subnet_ids
 }
+
+# --- RULES: Core Services (Identidad) ---
+# Se mantienen igual, son necesarios para el Login
 
 module "person_service_alb_rule" {
   source            = "./modules/alb_rule"
@@ -75,26 +78,26 @@ module "user_service_alb_rule" {
 }
 
 
-module "team_service_alb_rule" {
+module "vehicle_service_alb_rule" {
   source             = "./modules/alb_rule"
-  name               = "team-tg"
+  name               = "vehicle-tg"
   port               = 10041
-  vpc_id             = module.vpc_crm.vpc_id
+  vpc_id             = module.vpc_parking.vpc_id
   listener_arn       = module.alb.listener_arn
   priority           = 4
-  path               = "/teamService"
-  health_check_path  = "/teamService"
+  path               = "/vehicleService"
+  health_check_path  = "/vehicleService"
   health_check_port  = "10041"
 }
-module "objective_service_alb_rule" {
+module "tariff_service_alb_rule" {
   source             = "./modules/alb_rule"
-  name               = "objective-tg"
+  name               = "tariff-tg"
   port               = 10061
-  vpc_id             = module.vpc_crm.vpc_id
+  vpc_id             = module.vpc_parking.vpc_id
   listener_arn       = module.alb.listener_arn
   priority           = 5
-  path               = "/objectiveService"
-  health_check_path  = "/objectiveService"
+  path               = "/tariffService"
+  health_check_path  = "/tariffService"
   health_check_port  = "10061"
 }
 
@@ -122,65 +125,66 @@ module "authentication_service_alb_rule" {
   health_check_port  = "10061"
 }
 
-module "project_service_alb_rule" {
+module "zone_service_alb_rule" {
   source             = "./modules/alb_rule"
-  name               = "project-tg"
+  name               = "zone-tg"
   port               = 10051
-  vpc_id             = module.vpc_crm.vpc_id
+  vpc_id             = module.vpc_parking.vpc_id
   listener_arn       = module.alb.listener_arn
   priority           = 8
-  path               = "/projectService"
-  health_check_path  = "/projectService"
+  path               = "/zoneService"
+  health_check_path  = "/zoneService"
   health_check_port  = "10051"
 }
 
-module "task_service_alb_rule" {
+module "reservation_service_alb_rule" {
   source             = "./modules/alb_rule"
-  name               = "task-tg"
+  name               = "reservation-tg"
   port               = 10071
-  vpc_id             = module.vpc_crm.vpc_id
+  vpc_id             = module.vpc_parking.vpc_id
   listener_arn       = module.alb.listener_arn
   priority           = 9
-  path               = "/taskService"
-  health_check_path  = "/taskService"
+  path               = "/reservationService"
+  health_check_path  = "/reservationService"
   health_check_port  = "10071"
 }
 
-module "forum_service_alb_rule" {
+module "sensor_service_alb_rule" {
   source             = "./modules/alb_rule"
-  name               = "forum-tg"
+  name               = "sensor-tg"
   port               = 10103
-  vpc_id             = module.vpc_crm.vpc_id
+  vpc_id             = module.vpc_parking.vpc_id
   listener_arn       = module.alb.listener_arn
   priority           = 10
-  path               = "/forumService"
-  health_check_path  = "/forumService"
+  path               = "/sensorService"
+  health_check_path  = "/sensorService"
   health_check_port  = "10103"
 }
 
-#APi Gateway
+#---API GATEWAY---
+
 module "api_gateway" {
   source  = "./modules/api_gateway"
-  name    = "crm-microservices-api"
+  name    = "smart-parking-api"
   alb_url = "http://${module.alb.alb_dns_name}"
 
   routes = [
-    "/taskService",
+    "/reservationService",
     "/userService",
     "/personService",
-    "/objectiveService",
-    "/forumService",
+    "/tariffService",
+    "/sensorService",
     "/roleService",
     "/sessionService",
-    "/teamService",
+    "/vehicleService",
     "/authService",
-    "/projectService"
+    "/zoneService"
   ]
 }
 
-# Cluster ECS
-resource "aws_ecs_cluster" "crm_cluster" {
-  name = "crm-cluster"
+#--- CLUSTER ECS ---
+resource "aws_ecs_cluster" "parking_cluster" {
+  name = "smart-parking-cluster"
 }
 
 resource "aws_cloudwatch_log_group" "person_service" {
