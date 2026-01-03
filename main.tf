@@ -193,7 +193,7 @@ resource "aws_cloudwatch_log_group" "person_service" {
 }
 
 
-#person-service
+# ---PERSON-SERVICE---
 resource "aws_ecs_task_definition" "person" {
   family                   = "person-task"
   network_mode             = "awsvpc"
@@ -226,13 +226,13 @@ resource "aws_ecs_task_definition" "person" {
 
 resource "aws_ecs_service" "person_service" {
   name            = "person-service"
-  cluster         = aws_ecs_cluster.crm_cluster.id
+  cluster         = aws_ecs_cluster.parking_cluster.id
   task_definition = aws_ecs_task_definition.person.arn
   launch_type     = "FARGATE"
   desired_count   = 1
 
   network_configuration {
-    subnets          = module.vpc_crm.public_subnet_ids
+    subnets          = module.vpc_parking.public_subnet_ids
     assign_public_ip = true
     security_groups  = [module.ecs_sg.sg_person_service_id]
   }
@@ -248,7 +248,7 @@ resource "aws_ecs_service" "person_service" {
 
 
 
-#role service
+# ---ROLE-SERVICE---
 resource "aws_ecs_task_definition" "role" {
   family                   = "role-task"
   network_mode             = "awsvpc"
@@ -280,13 +280,13 @@ resource "aws_ecs_task_definition" "role" {
 
 resource "aws_ecs_service" "role_service" {
   name            = "role-service"
-  cluster         = aws_ecs_cluster.crm_cluster.id
+  cluster         = aws_ecs_cluster.parking_cluster.id
   task_definition = aws_ecs_task_definition.role.arn
   launch_type     = "FARGATE"
   desired_count   = 1
 
   network_configuration {
-    subnets          = module.vpc_crm.public_subnet_ids
+    subnets          = module.vpc_parking.public_subnet_ids
     assign_public_ip = true
     security_groups  = [module.ecs_sg.sg_role_service_id]
   }
@@ -300,7 +300,7 @@ resource "aws_ecs_service" "role_service" {
   depends_on = [module.alb]
 }
 
-# user-service
+# ---USER-SERVICE---
 resource "aws_ecs_task_definition" "user" {
   family                   = "user-task"
   network_mode             = "awsvpc"
@@ -332,13 +332,13 @@ resource "aws_ecs_task_definition" "user" {
 
 resource "aws_ecs_service" "user_service" {
   name            = "user-service"
-  cluster         = aws_ecs_cluster.crm_cluster.id
+  cluster         = aws_ecs_cluster.parking_cluster.id
   task_definition = aws_ecs_task_definition.user.arn
   launch_type     = "FARGATE"
   desired_count   = 1
 
   network_configuration {
-    subnets          = module.vpc_crm.public_subnet_ids
+    subnets          = module.vpc_parking.public_subnet_ids
     assign_public_ip = true
     security_groups  = [module.ecs_sg.sg_user_service_id]
   }
@@ -352,9 +352,9 @@ resource "aws_ecs_service" "user_service" {
   depends_on = [module.alb]
 }
 
-# team-service
-resource "aws_ecs_task_definition" "team" {
-  family                   = "team-task"
+# ---VEHICLE-SERVICE---
+resource "aws_ecs_task_definition" "vehicle" {
+  family                   = "vehicle-task"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
   cpu                      = "256"
@@ -362,7 +362,7 @@ resource "aws_ecs_task_definition" "team" {
 
   container_definitions = jsonencode([{
     name      = "team-service"
-    image     = "aledve/team-service:latest"
+    image     = "aledve/vehicle-service:latest"
     essential = true
     portMappings = [
       {
@@ -374,7 +374,7 @@ resource "aws_ecs_task_definition" "team" {
     log_configuration = {
       log_driver = "awslogs"
       options = {
-        awslogs-group         = "/ecs/team-service"
+        awslogs-group         = "/ecs/vehicle-service"
         awslogs-region        = "us-east-1"
         awslogs-stream-prefix = "ecs"
       }
@@ -382,39 +382,39 @@ resource "aws_ecs_task_definition" "team" {
   }])
 }
 
-resource "aws_ecs_service" "team_service" {
-  name            = "team-service"
-  cluster         = aws_ecs_cluster.crm_cluster.id
-  task_definition = aws_ecs_task_definition.team.arn
+resource "aws_ecs_service" "vehicle_service" {
+  name            = "vehicle-service"
+  cluster         = aws_ecs_cluster.parking_cluster.id
+  task_definition = aws_ecs_task_definition.vehicle.arn
   launch_type     = "FARGATE"
   desired_count   = 1
 
   network_configuration {
-    subnets          = module.vpc_crm.public_subnet_ids
+    subnets          = module.vpc_parking.public_subnet_ids
     assign_public_ip = true
     security_groups  = [module.ecs_sg.sg_team_service_id]
   }
 
   load_balancer {
-    target_group_arn = module.team_service_alb_rule.target_group_arn
-    container_name   = "team-service"
+    target_group_arn = module.vehicle_service_alb_rule.target_group_arn
+    container_name   = "vehicle-service"
     container_port   = 10041
   }
 
   depends_on = [module.alb]
 }
 
-# objective-service
-resource "aws_ecs_task_definition" "objective" {
-  family                   = "objective-task"
+# ---TARIFF-SERVICE---
+resource "aws_ecs_task_definition" "tariff" {
+  family                   = "tariff-task"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
   cpu                      = "256"
   memory                   = "512"
 
   container_definitions = jsonencode([{
-    name      = "objective-service"
-    image     = "aledve/objective-service:latest"
+    name      = "tariff-service"
+    image     = "aledve/tariff-service:latest"
     essential = true
     portMappings = [
       {
@@ -426,7 +426,7 @@ resource "aws_ecs_task_definition" "objective" {
     log_configuration = {
       log_driver = "awslogs"
       options = {
-        awslogs-group         = "/ecs/objective-service"
+        awslogs-group         = "/ecs/tariff-service"
         awslogs-region        = "us-east-1"
         awslogs-stream-prefix = "ecs"
       }
@@ -434,29 +434,29 @@ resource "aws_ecs_task_definition" "objective" {
   }])
 }
 
-resource "aws_ecs_service" "objective_service" {
-  name            = "objective-service"
-  cluster         = aws_ecs_cluster.crm_cluster.id
-  task_definition = aws_ecs_task_definition.objective.arn
+resource "aws_ecs_service" "tariff_service" {
+  name            = "tariff-service"
+  cluster         = aws_ecs_cluster.parking_cluster.id
+  task_definition = aws_ecs_task_definition.tariff.arn
   launch_type     = "FARGATE"
   desired_count   = 1
 
   network_configuration {
-    subnets          = module.vpc_crm.public_subnet_ids
+    subnets          = module.vpc_parking.public_subnet_ids
     assign_public_ip = true
     security_groups  = [module.ecs_sg.sg_objective_service_id]
   }
 
   load_balancer {
-    target_group_arn = module.objective_service_alb_rule.target_group_arn
-    container_name   = "objective-service"
+    target_group_arn = module.tariff_service_alb_rule.target_group_arn
+    container_name   = "tariff-service"
     container_port   = 10061
   }
 
   depends_on = [module.alb]
 }
 
-# session-service
+# ---SESSION-SERVICE---
 resource "aws_ecs_task_definition" "session" {
   family                   = "session-task"
   network_mode             = "awsvpc"
@@ -488,13 +488,13 @@ resource "aws_ecs_task_definition" "session" {
 
 resource "aws_ecs_service" "session_service" {
   name            = "session-service"
-  cluster         = aws_ecs_cluster.crm_cluster.id
+  cluster         = aws_ecs_cluster.parking_cluster.id
   task_definition = aws_ecs_task_definition.session.arn
   launch_type     = "FARGATE"
   desired_count   = 1
 
   network_configuration {
-    subnets          = module.vpc_crm.public_subnet_ids
+    subnets          = module.vpc_parking.public_subnet_ids
     assign_public_ip = true
     security_groups  = [module.ecs_sg.sg_session_service_id]
   }
@@ -508,7 +508,7 @@ resource "aws_ecs_service" "session_service" {
   depends_on = [module.alb]
 }
 
-# auth-service
+# ---AUTH-SERVICE---
 resource "aws_ecs_task_definition" "authentication" {
   family                   = "authentication-task"
   network_mode             = "awsvpc"
@@ -540,13 +540,13 @@ resource "aws_ecs_task_definition" "authentication" {
 
 resource "aws_ecs_service" "authentication_service" {
   name            = "authentication-service"
-  cluster         = aws_ecs_cluster.crm_cluster.id
+  cluster         = aws_ecs_cluster.parking_cluster.id
   task_definition = aws_ecs_task_definition.authentication.arn
   launch_type     = "FARGATE"
   desired_count   = 1
 
   network_configuration {
-    subnets          = module.vpc_crm.public_subnet_ids
+    subnets          = module.vpc_parking.public_subnet_ids
     assign_public_ip = true
     security_groups  = [module.ecs_sg.sg_authentication_service_id]
   }
@@ -560,16 +560,16 @@ resource "aws_ecs_service" "authentication_service" {
   depends_on = [module.alb]
 }
 
-# project-service
-resource "aws_ecs_task_definition" "project" {
-  family                   = "project-task"
+# ---ZONE-SERVICE---
+resource "aws_ecs_task_definition" "zone" {
+  family                   = "zone-task"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
   cpu                      = "256"
   memory                   = "512"
 
   container_definitions = jsonencode([{
-    name      = "project-service"
+    name      = "zone-service"
     image     = "aledve/project-service:latest"
     essential = true
     portMappings = [
@@ -582,7 +582,7 @@ resource "aws_ecs_task_definition" "project" {
     log_configuration = {
       log_driver = "awslogs"
       options = {
-        awslogs-group         = "/ecs/project-service"
+        awslogs-group         = "/ecs/zone-service"
         awslogs-region        = "us-east-1"
         awslogs-stream-prefix = "ecs"
       }
@@ -590,39 +590,39 @@ resource "aws_ecs_task_definition" "project" {
   }])
 }
 
-resource "aws_ecs_service" "project_service" {
-  name            = "project-service"
-  cluster         = aws_ecs_cluster.crm_cluster.id
-  task_definition = aws_ecs_task_definition.project.arn
+resource "aws_ecs_service" "zone_service" {
+  name            = "zone-service"
+  cluster         = aws_ecs_cluster.parking_cluster.id
+  task_definition = aws_ecs_task_definition.zone.arn
   launch_type     = "FARGATE"
   desired_count   = 1
 
   network_configuration {
-    subnets          = module.vpc_crm.public_subnet_ids
+    subnets          = module.vpc_parking.public_subnet_ids
     assign_public_ip = true
     security_groups  = [module.ecs_sg.sg_project_service_id]
   }
 
   load_balancer {
     target_group_arn = module.project_service_alb_rule.target_group_arn
-    container_name   = "project-service"
+    container_name   = "zone-service"
     container_port   = 10051
   }
 
   depends_on = [module.alb]
 }
 
-# task-service
-resource "aws_ecs_task_definition" "task" {
-  family                   = "task-task"
+# ---RESERVATION-SERVICE---
+resource "aws_ecs_task_definition" "reservation" {
+  family                   = "reservation-task"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
   cpu                      = "256"
   memory                   = "512"
 
   container_definitions = jsonencode([{
-    name      = "task-service"
-    image     = "aledve/task-service:latest"
+    name      = "reservation-service"
+    image     = "aledve/reservation-service:latest"
     essential = true
     portMappings = [
       {
@@ -634,7 +634,7 @@ resource "aws_ecs_task_definition" "task" {
     log_configuration = {
       log_driver = "awslogs"
       options = {
-        awslogs-group         = "/ecs/task-service"
+        awslogs-group         = "/ecs/reservation-service"
         awslogs-region        = "us-east-1"
         awslogs-stream-prefix = "ecs"
       }
@@ -642,39 +642,39 @@ resource "aws_ecs_task_definition" "task" {
   }])
 }
 
-resource "aws_ecs_service" "task_service" {
-  name            = "task-service"
-  cluster         = aws_ecs_cluster.crm_cluster.id
-  task_definition = aws_ecs_task_definition.task.arn
+resource "aws_ecs_service" "reservation_service" {
+  name            = "reservation-service"
+  cluster         = aws_ecs_cluster.parking_cluster.id
+  task_definition = aws_ecs_task_definition.reservation.arn
   launch_type     = "FARGATE"
   desired_count   = 1
 
   network_configuration {
-    subnets          = module.vpc_crm.public_subnet_ids
+    subnets          = module.vpc_parking.public_subnet_ids
     assign_public_ip = true
     security_groups  = [module.ecs_sg.sg_task_service_id]
   }
 
   load_balancer {
-    target_group_arn = module.task_service_alb_rule.target_group_arn
-    container_name   = "task-service"
+    target_group_arn = module.reservation_service_alb_rule.target_group_arn
+    container_name   = "reservation-service"
     container_port   = 10071
   }
 
   depends_on = [module.alb]
 }
 
-# forum-service
-resource "aws_ecs_task_definition" "forum" {
-  family                   = "forum-task"
+# ---SENSOR-SERVICE---
+resource "aws_ecs_task_definition" "sensor" {
+  family                   = "sensor-task"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
   cpu                      = "256"
   memory                   = "512"
 
   container_definitions = jsonencode([{
-    name      = "forum-service"
-    image     = "aledve/forum-service:latest"
+    name      = "sensor-service"
+    image     = "aledve/sensor-service:latest"
     essential = true
     portMappings = [
       {
@@ -686,7 +686,7 @@ resource "aws_ecs_task_definition" "forum" {
     log_configuration = {
       log_driver = "awslogs"
       options = {
-        awslogs-group         = "/aws/ecs/forum-service"
+        awslogs-group         = "/aws/ecs/sensor-service"
         awslogs-region        = "us-east-1"
         awslogs-stream-prefix = "ecs"
       }
@@ -694,22 +694,22 @@ resource "aws_ecs_task_definition" "forum" {
   }])
 }
 
-resource "aws_ecs_service" "forum_service" {
-  name            = "forum-service"
-  cluster         = aws_ecs_cluster.crm_cluster.id
-  task_definition = aws_ecs_task_definition.forum.arn
+resource "aws_ecs_service" "sensor_service" {
+  name            = "sensor-service"
+  cluster         = aws_ecs_cluster.parking_cluster.id
+  task_definition = aws_ecs_task_definition.sensor.arn
   launch_type     = "FARGATE"
   desired_count   = 1
 
   network_configuration {
-    subnets          = module.vpc_crm.public_subnet_ids
+    subnets          = module.vpc_parking.public_subnet_ids
     assign_public_ip = true
     security_groups  = [module.ecs_sg.sg_forum_service_id]
   }
 
   load_balancer {
-    target_group_arn = module.forum_service_alb_rule.target_group_arn
-    container_name   = "forum-service"
+    target_group_arn = module.sensor_service_alb_rule.target_group_arn
+    container_name   = "sensor-service"
     container_port   = 10103
   }
 
